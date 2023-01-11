@@ -1,12 +1,13 @@
 import { BadRequestException, Injectable, InternalServerErrorException, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { PaginationDto } from 'src/common/dtos/pagination.dto';
+import { PaginationDto } from '../common/dtos/pagination.dto';
 import { DataSource, Repository } from 'typeorm';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { Product } from './entities/product.entity';
 import { validate as isUUID } from 'uuid';
 import { ProductImage } from './entities';
+import { User } from '../auth/entities/user.entity';
 
 @Injectable()
 export class ProductsService {
@@ -23,12 +24,13 @@ export class ProductsService {
     private readonly dataSource: DataSource,
   ){}
 
-  async create(createProductDto: CreateProductDto) {
+  async create(createProductDto: CreateProductDto, user: User){
     try {
       const { images = [], ...productDetails } = createProductDto;
 
       const product = this.productRepository.create({
         ...productDetails,
+        user,
         images: images.map( image => this.productImageRepository.create({ url: image }) )
       });
       await this.productRepository.save( product );
@@ -86,7 +88,7 @@ export class ProductsService {
     }
   }
 
-  async update(id:string, updateProductDto: UpdateProductDto) {
+  async update(id:string, updateProductDto: UpdateProductDto, user: User) {
     const { images, ...toUpdate } = updateProductDto;
 
     const product = await this.productRepository.preload({ id: id, ...toUpdate });
@@ -107,6 +109,7 @@ export class ProductsService {
         )
       }
       // await this.productRepository.save( product );
+      product.user = user
       await queryRunner.manager.save( product );
 
       await queryRunner.commitTransaction();
