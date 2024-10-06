@@ -21,14 +21,16 @@ interface SessionMetadata {
 export class StripeService {
   readonly stripe: Stripe;
   readonly static_url_products:  string;
+  readonly webhook_id: string;
   constructor(
         readonly configService: ConfigService,
         private readonly orderService: OrdersService,
     ) {
         this.stripe = new Stripe(configService.get<string>('STRIPE_SECRET_KEY'), {
-            apiVersion: '2024-06-20'
+            apiVersion: '2024-09-30.acacia'
         });
         this.static_url_products = configService.get<string>('STATIC_URL');
+        this.webhook_id = configService.get<string>('STRIPE_WEBHOOK_ID')
     }
 
     async createCheckoutSession( 
@@ -91,7 +93,7 @@ export class StripeService {
     try {
       const sig =  request.headers['stripe-signature'];
       let event: Stripe.Event
-      event = this.stripe.webhooks.constructEvent(request.body as any, sig, 'whsec_3b60ebace1ed7110d9e055665ce21c4b7ac731bdf374e74268519fef5e0a9161');
+      event = this.stripe.webhooks.constructEvent(request.body as any, sig, this.webhook_id);
       switch (event.type) {
         case 'checkout.session.completed':
           const session = event.data.object as Stripe.Checkout.Session;
