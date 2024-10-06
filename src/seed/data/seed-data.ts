@@ -798,7 +798,7 @@ export const initialData: SeedData = {
             stock: 10,
             price: 30,
             sizes: ['XS','S'],
-            slug: "zero_emissions_(almost)_onesie",
+            slug: "zero_emissions_aalmost_onesie",
             type: 'shirts',
             tags: ['shirt'],
             title: "Zero Emissions (Almost) Onesie",

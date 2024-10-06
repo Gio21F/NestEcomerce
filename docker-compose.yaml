@@ -14,20 +14,20 @@ services:
     volumes:
       - ./postgres:/var/lib/postgresql/data
 
-  # nest:
-  #   build:
-  #     context: .  # Contexto de construcción, usa la ruta del directorio del proyecto
-  #     dockerfile: Dockerfile  # Ruta a tu Dockerfile
-  #   ports:
-  #     - "8000:8000"  # Cambia el puerto si es necesario
-  #   env_file: .env
-  #   environment:
-  #     DB_HOST: db  # Nombre del servicio de la base de datos
-  #     DB_PORT: 5432
-  #     DB_USERNAME: ${DB_USERNAME}
-  #     DB_PASSWORD: ${DB_PASSWORD}
-  #     DB_NAME: ${DB_NAME}
-  #   depends_on:
-  #     - db
-  #   volumes:
-  #     - .:/app  # Monta tu proyecto en el contenedor
+  nest:
+    build:
+      context: .  # Contexto de construcción, usa la ruta del directorio del proyecto
+      dockerfile: Dockerfile  # Ruta a tu Dockerfile
+    ports:
+      - "8000:8000"  # Cambia el puerto si es necesario
+    env_file: .env
+    environment:
+      DB_HOST: db  # Nombre del servicio de la base de datos
+      DB_PORT: 5432
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+    depends_on:
+      - db
+    volumes:
+      - .:/app  # Monta tu proyecto en el contenedor
