@@ -9,6 +9,11 @@ import { SeedModule } from './seed/seed.module';
 import { FilesModule } from './files/files.module';
 import { AuthModule } from './auth/auth.module';
 import { MessagesWsModule } from './messages-ws/messages-ws.module';
+import { ServeStaticModule } from '@nestjs/serve-static';
+import { join } from 'path';
+import { StripeModule } from './stripe/stripe.module';
+import { OrdersModule } from './orders/orders.module';
+import { UsersModule } from './users/users.module';
 
 @Module({
   imports: [
@@ -23,12 +28,19 @@ import { MessagesWsModule } from './messages-ws/messages-ws.module';
       autoLoadEntities: true,
       synchronize: true,
     }),
+    ServeStaticModule.forRoot({
+      rootPath: join(__dirname, '..', 'static'),  // Sirve la carpeta ./static
+      serveRoot: '/static/', // Opcional, para servir los archivos bajo "/static/"
+    }),
     ProductsModule,
     CommonModule,
     SeedModule,
     FilesModule,
     AuthModule,
     MessagesWsModule,
+    StripeModule,
+    OrdersModule,
+    UsersModule,
   ],
   controllers: [AppController],
   providers: [AppService],

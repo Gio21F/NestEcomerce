@@ -1,8 +1,12 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsOptional, IsPositive, Min } from 'class-validator';
+import { IsEnum, IsOptional, IsPositive, Min } from 'class-validator';
 
-
+enum Gender {
+    KID = 'kid',
+    WOMEN = 'women',
+    MEN = 'men',
+}
 export class PaginationDto {
 
     @ApiProperty({
@@ -19,6 +23,10 @@ export class PaginationDto {
     @IsOptional()
     @Min(0)
     @Type( () => Number ) // enableImplicitConversions: true
-    offset?: number;
+    offset?: number;    
+
+    @IsOptional()
+    @IsEnum(Gender)
+    gender: Gender;
 
 }

@@ -1,18 +1,27 @@
 import { BadRequestException, Injectable, InternalServerErrorException, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { PaginationDto } from '../common/dtos/pagination.dto';
-import { DataSource, Repository } from 'typeorm';
-import { CreateProductDto } from './dto/create-product.dto';
+import { DataSource, In, Repository } from 'typeorm';
+import { CreateProductSeedDto } from './dto/create-product-seed.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { Product } from './entities/product.entity';
 import { validate as isUUID } from 'uuid';
 import { ProductImage } from './entities';
 import { User } from '../auth/entities/user.entity';
+import { ConfigService } from '@nestjs/config';
+import { writeFileSync, unlinkSync } from 'fs'; // Para manejar archivos locales
+import { v4 as uuidv4 } from 'uuid'; // Importar uuid
+import { CreateProductDto } from './dto/create-product.dto';
+import * as fs from 'fs';
+import * as path from 'path'
+import { UsersService } from 'src/users/users.service';
+import { OrdersService } from 'src/orders/orders.service';
 
 @Injectable()
 export class ProductsService {
 
   private readonly logger = new Logger('ProductsService');
+  private readonly static_products:string;
   constructor(
 
     @InjectRepository(Product)
@@ -21,20 +30,23 @@ export class ProductsService {
     @InjectRepository(ProductImage)
     private readonly productImageRepository: Repository<ProductImage>,
 
-    private readonly dataSource: DataSource,
-  ){}
+    private configService: ConfigService,
+    private readonly userService: UsersService,
+    private readonly orderService: OrdersService,
+  ){
+    this.static_products = this.configService.get<string>('STATIC_URL')
+  }
 
-  async create(createProductDto: CreateProductDto, user: User){
+  async createProductsSeed(createProductDto: CreateProductSeedDto, user: User){
     try {
       const { images = [], ...productDetails } = createProductDto;
 
       const product = this.productRepository.create({
         ...productDetails,
         user,
-        images: images.map( image => this.productImageRepository.create({ url: image }) )
+        images: images.map( image => this.productImageRepository.create({ filename: image }) )
       });
       await this.productRepository.save( product );
-
       return {...product, images};
       
     } catch (error) {
@@ -42,19 +54,45 @@ export class ProductsService {
     }
   }
 
+  async create( createProductDto: CreateProductDto, user: User) {
+    try {
+      const product = this.productRepository.create({
+        ...createProductDto,
+        user
+      });
+      const savedProduct = await this.productRepository.save(product);
+      return savedProduct;
+    } catch (error) {
+      console.log(error)
+      this.handleDBExceptions(error);
+    } 
+  }
+
+  async findAllAdmin() {
+    const products = await this.productRepository.find({ 
+      relations: { images: true},
+      order: { created_at: 'DESC' }
+    });
+    return products.map( ( product ) => ({
+      ...product,
+      images: product.images.map( img => `${this.static_products}/products/${img.filename}` )
+    }))
+  }
+
   async findAll( paginationDto: PaginationDto ) {
-    const { limit = 10, offset = 0 } = paginationDto;
+    const { limit = 20, offset = 0, gender } = paginationDto;
+    const whereCondition = gender ? { gender } : {};
     const products = await this.productRepository.find({
       take: limit,
       skip: offset,
       relations: {
         images: true,
-      }
+      },
+      where: whereCondition
     })
-
     return products.map( ( product ) => ({
       ...product,
-      images: product.images.map( img => img.url )
+      images: product.images.map( img => `${this.static_products}/products/${img.filename}` )
     }))
   }
 
@@ -66,12 +104,17 @@ export class ProductsService {
     } else {
       const queryBuilder = this.productRepository.createQueryBuilder('prod'); 
       product = await queryBuilder
-        .where('UPPER(title) =:title or slug =:slug', {
+      .where(
+        `(UPPER(prod.title) = :title OR prod.slug = :slug) 
+         OR to_tsvector('english', prod.title || ' ' || array_to_string(prod.tags, ' ')) @@ to_tsquery(:fullTextSearch)`,
+        {
           title: term.toUpperCase(),
           slug: term.toLowerCase(),
-        })
-        .leftJoinAndSelect('prod.images','prodImages')
-        .getOne();
+          fullTextSearch: term.split(' ').join(' & '), // Convierte "laptop gaming" a "laptop & gaming"
+        }
+      )
+      .leftJoinAndSelect('prod.images', 'prodImages')
+      .getOne();
     }
 
     if ( !product ) 
@@ -84,44 +127,21 @@ export class ProductsService {
     const { images = [], ...rest } = await this.findOne( term );
     return {
       ...rest,
-      images: images.map( image => image.url )
+      images: images.map( img => `${this.static_products}/products/${img.filename}` )
     }
   }
 
-  async update(id:string, updateProductDto: UpdateProductDto, user: User) {
-    const { images, ...toUpdate } = updateProductDto;
-
-    const product = await this.productRepository.preload({ id: id, ...toUpdate });
-
-    if ( !product ) throw new NotFoundException(`Product with id: ${ id } not found`);
-
-    // Create query runner
-    const queryRunner = this.dataSource.createQueryRunner();
-    await queryRunner.connect();
-    await queryRunner.startTransaction();
-
+  async update( id:string, updateProductDto: UpdateProductDto) {
     try {
-      if( images ) {
-        await queryRunner.manager.delete( ProductImage, { product: { id } });
-
-        product.images = images.map( 
-          image => this.productImageRepository.create({ url: image }) 
-        )
-      }
-      // await this.productRepository.save( product );
-      product.user = user
-      await queryRunner.manager.save( product );
-
-      await queryRunner.commitTransaction();
-      await queryRunner.release();
-
-      return this.findOnePlain( id );
-      
+      const product = await this.productRepository.findOne({ where: { id } });
+      if (!product) throw new NotFoundException('Product not found');
+      const updatedProduct = Object.assign(product, updateProductDto);
+      await this.productRepository.save(updatedProduct);
+      return updatedProduct;
     } catch (error) {
-      await queryRunner.rollbackTransaction();
-      await queryRunner.release();
-      this.handleDBExceptions(error);
+      this.handleDBExceptions( error );
     }
+    
   }
 
   async remove(id: string) {
@@ -150,6 +170,99 @@ export class ProductsService {
     } catch (error) {
       this.handleDBExceptions(error);
     }
-
   }
+
+  async findProductsByIds(productIds: string[]): Promise<Product[]> {
+    return this.productRepository.find({
+      where: { id: In(productIds) },
+      relations: { images: true}
+    });
+  }
+
+  async saveFileNames( fileNames: string[], id: string ) {
+    try {
+        const product = await this.findOne(id);
+        if (!product) throw new BadRequestException('No se encontro el producto');
+        for (const fileName of fileNames) {
+            const productImage = this.productImageRepository.create({
+              filename: fileName,
+              product: product
+            });
+            await this.productImageRepository.save(productImage);
+        }
+        return {
+          images: fileNames.map( img => `${this.static_products}/products/${img}` )
+        }
+    } catch (error) {
+        this.handleDBExceptions(error);
+    }
+  }
+
+  async removeImage( filename: string ) {
+    try {
+      const image = await this.productImageRepository.findOneBy({ filename: filename });
+      if (!image) {
+        throw new BadRequestException('Image not found');
+      }
+      const imagePath = path.join(__dirname, '../../static/products/', filename);
+      // Verificar si el archivo existe y eliminarlo
+      if (fs.existsSync(imagePath)) {
+        fs.unlinkSync(imagePath); // Eliminar el archivo del disco
+      } else {
+        throw new BadRequestException('File not found on disk');
+      }
+      await this.productImageRepository.delete(image);
+      return { message: 'Image deleted successfully' };
+    } catch (error) {
+      return this.handleDBExceptions(error);
+    }
+  }
+
+  //Search
+  async search(term: string){
+    const queryBuilder = this.productRepository.createQueryBuilder('prod'); 
+    const products = await queryBuilder
+      .where(
+        `(UPPER(prod.title) = :title OR prod.slug = :slug) 
+        OR to_tsvector('english', prod.title || ' ' || array_to_string(prod.tags, ' ')) @@ to_tsquery(:fullTextSearch)`,
+        {
+          title: term.toUpperCase(),
+          slug: term.toLowerCase(),
+          fullTextSearch: term.split(' ').join(' & '), // Convierte "laptop gaming" a "laptop & gaming"
+        }
+      )
+      .leftJoinAndSelect('prod.images', 'prodImages')
+      .getMany();
+    
+    if (!products || products.length === 0) 
+      throw new NotFoundException(`Product with term ${term} not found`);
+    
+    const processedProducts = products.map(product => {
+      const { images = [], ...rest } = product;
+      return {
+        ...rest,
+        images: images.map(img => `${this.static_products}/products/${img.filename}`)
+      };
+    });
+
+    return processedProducts;
+  }
+
+  async getNumberOfProducts(){
+    const count = await this.productRepository.count();
+    return count;
+  }
+
+  //Dashboard
+  async dashboard() {
+    const numberOfClients = await this.userService.getNumberOfClients()
+    const numberOfOrders = await this.orderService.getNumberOfOrders();
+    const numberOfProducts = await this.getNumberOfProducts();
+    return {
+      numberOfClients,
+      numberOfOrders,
+      numberOfProducts,
+    }
+  }
+
 }

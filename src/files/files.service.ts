@@ -13,6 +13,4 @@ export class FilesService {
 
         return path;
     }
-
-
 }

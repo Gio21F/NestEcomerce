@@ -50,10 +50,4 @@ export class CreateProductDto {
     @IsArray()
     @IsOptional()
     tags: string[];
-
-    @ApiProperty()
-    @IsString({ each: true })
-    @IsArray()
-    @IsOptional()
-    images?: string[];
 }

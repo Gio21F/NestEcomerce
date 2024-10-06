@@ -1,3 +1,4 @@
+import { Order } from "src/orders/entities/order.entity";
 import { Product } from "src/products/entities";
 import { BeforeInsert, BeforeUpdate, Column, Entity, OneToMany, PrimaryGeneratedColumn } from "typeorm";
 
@@ -35,8 +36,19 @@ export class User {
         () => Product,
         ( product ) => product.user
     )
-    product: Product;
+    products: Product[];
 
+    @OneToMany(
+        () => Order,
+        ( order ) => order.user
+    )
+    orders: Order[];
+
+    @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+    created_at: Date;
+
+    @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP', onUpdate: 'CURRENT_TIMESTAMP' })
+    updated_at: Date;
 
     @BeforeInsert()
     checkFieldsBeforeInsert() {

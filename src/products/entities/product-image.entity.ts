@@ -9,7 +9,7 @@ export class ProductImage {
     id: number;
 
     @Column('text')
-    url: string;
+    filename: string;
 
     @ManyToOne(
         () => Product,

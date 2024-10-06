@@ -1,10 +1,13 @@
 //Representacion del objeto en la base de datos
 import { User } from '../../auth/entities/user.entity';
-import { BeforeInsert, BeforeUpdate, Column, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
+import { BeforeInsert, BeforeUpdate, Column, Entity, Index, ManyToOne, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
 import { ProductImage } from './product-image.entity';
 import { ApiProperty } from '@nestjs/swagger';
+import { Exclude } from 'class-transformer';
+import { OrderDetail } from 'src/orders/entities/orderDetail.entity';
 
 @Entity({ name: 'products' })
+@Index('product_text_search_idx', ['title', 'tags'], { fulltext: true })
 export class Product {
 
     @ApiProperty({
@@ -90,7 +93,7 @@ export class Product {
 
     @ManyToOne(
         () => User,
-        ( user ) => user.product,
+        ( user ) => user.products,
         { eager: true } //Cargar automaticamente la relacion
     )
     user: User
@@ -104,6 +107,16 @@ export class Product {
     )
     images?: ProductImage[];
 
+
+    @Exclude()
+    @OneToMany(() => OrderDetail, orderDetail => orderDetail.product)
+    orderDetails: OrderDetail[];
+
+    @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+    created_at: Date;
+
+    @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP', onUpdate: 'CURRENT_TIMESTAMP' })
+    updated_at: Date;
 
     @BeforeInsert()
     checkSlugInsert() {
