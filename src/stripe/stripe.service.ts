@@ -20,9 +20,7 @@ export class StripeService {
         readonly configService: ConfigService,
         private readonly orderService: OrdersService,
     ) {
-        this.stripe = new Stripe(configService.get<string>('STRIPE_SECRET_KEY'), {
-            apiVersion: '2024-09-30.acacia'
-        });
+        this.stripe = new Stripe(configService.get<string>('STRIPE_SECRET_KEY'));
         this.staticPath = configService.get<string>('STATIC_URL');
         this.webhook_id = configService.get<string>('STRIPE_WEBHOOK_ID')
     }
