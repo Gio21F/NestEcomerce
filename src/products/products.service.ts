@@ -9,8 +9,6 @@ import { validate as isUUID } from 'uuid';
 import { ProductImage } from './entities';
 import { User } from '../auth/entities/user.entity';
 import { ConfigService } from '@nestjs/config';
-import { writeFileSync, unlinkSync } from 'fs'; // Para manejar archivos locales
-import { v4 as uuidv4 } from 'uuid'; // Importar uuid
 import { CreateProductDto } from './dto/create-product.dto';
 import * as fs from 'fs';
 import * as path from 'path'
@@ -85,6 +83,7 @@ export class ProductsService {
     const products = await this.productRepository.find({
       take: limit,
       skip: offset,
+      order: { created_at: 'DESC' },
       relations: {
         images: true,
       },
@@ -182,9 +181,9 @@ export class ProductsService {
   }
 
   async saveFileNames( fileNames: string[], id: string ) {
+    const product = await this.findOne(id);
+    if (!product) throw new BadRequestException('No se encontro el producto');
     try {
-        const product = await this.findOne(id);
-        if (!product) throw new BadRequestException('No se encontro el producto');
         for (const fileName of fileNames) {
             const productImage = this.productImageRepository.create({
               filename: fileName,

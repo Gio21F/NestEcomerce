@@ -11,16 +11,10 @@ import { Product } from 'src/products/entities';
 import { OrdersService } from 'src/orders/orders.service';
 import { CreateOrderDto } from 'src/orders/dto/create-order.dto';
 
-interface SessionMetadata {
-  quantity: number,
-  size: string,
-  product: Product
-}
-
 @Injectable()
 export class StripeService {
-  readonly stripe: Stripe;
-  readonly static_url_products:  string;
+  readonly stripe    : Stripe;
+  readonly staticPath: string;
   readonly webhook_id: string;
   constructor(
         readonly configService: ConfigService,
@@ -29,7 +23,7 @@ export class StripeService {
         this.stripe = new Stripe(configService.get<string>('STRIPE_SECRET_KEY'), {
             apiVersion: '2024-09-30.acacia'
         });
-        this.static_url_products = configService.get<string>('STATIC_URL');
+        this.staticPath = configService.get<string>('STATIC_URL');
         this.webhook_id = configService.get<string>('STRIPE_WEBHOOK_ID')
     }
 
@@ -66,7 +60,7 @@ export class StripeService {
                 product_data: {
                     name: product.title,
                     description: product.description,
-                    // images: product.images.map( product => `${this.static_url_products}/products/${product.filename}` )
+                    images: product.images.map( product => `${this.staticPath}/products/${product.filename}` )
                 },
                 unit_amount: product.price * 100,
             },

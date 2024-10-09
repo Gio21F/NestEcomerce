@@ -21,6 +21,9 @@ export class User {
     @Column('text')
     fullName: string;
 
+    @Column('text', { default: 'default.png' })
+    avatar: string;
+
     @Column('bool', {
         default: true
     })

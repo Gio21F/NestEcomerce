@@ -7,7 +7,7 @@ import { User } from 'src/auth/entities/user.entity';
 export class OrdersController {
   constructor(private readonly ordersService: OrdersService) {}
 
-  @Get('me')
+  @Get('mine')
   @Auth()
   getMyOrders( @GetUser() user: User ) {
     return this.ordersService.getMyOrders(user);

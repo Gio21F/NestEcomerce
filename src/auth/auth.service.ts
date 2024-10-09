@@ -8,15 +8,20 @@ import { CreateUserDto, LoginUserDto } from './dto';
 import { User } from './entities/user.entity';
 import { JwtService } from '@nestjs/jwt';
 import { JwtPayload } from './interfaces';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger('ProductsService');
+  private readonly staticPath: string;
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
     private readonly jwtService: JwtService,
-  ){}
+    private configService: ConfigService,
+  ){
+    this.staticPath = configService.get<string>('STATIC_URL')
+  }
 
   async create( createUserDto: CreateUserDto ) {
     try {
@@ -52,7 +57,7 @@ export class AuthService {
       throw new UnauthorizedException('Credentials are not valid (password)');
 
     const fullUser = await this.userRepository.findOneBy({ id: user.id });
-
+    fullUser.avatar = `${this.staticPath}/users/${fullUser.avatar}`
     return {
       ...fullUser,
       token: this.getJwtToken({ id: user.id })

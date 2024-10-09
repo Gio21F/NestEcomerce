@@ -4,6 +4,7 @@ import { FilesController } from './files.controller';
 import { ConfigModule } from '@nestjs/config';
 import { AuthModule } from 'src/auth/auth.module';
 import { ProductsModule } from 'src/products/products.module';
+import { UsersModule } from 'src/users/users.module';
 
 @Module({
   controllers: [FilesController],
@@ -11,7 +12,8 @@ import { ProductsModule } from 'src/products/products.module';
   imports: [
     ConfigModule,
     AuthModule,
-    ProductsModule
+    ProductsModule,
+    UsersModule
   ]
 })
 export class FilesModule {}
