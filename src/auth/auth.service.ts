@@ -32,6 +32,7 @@ export class AuthService {
       });
       await this.userRepository.save( user );
 
+      user.avatar = `${this.staticPath}/users/${user.avatar}`
       return {
         ...user,
         token: this.getJwtToken({ id: user.id })
