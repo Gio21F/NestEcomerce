@@ -20,11 +20,6 @@ async function bootstrap() {
       forbidNonWhitelisted: true,
     })
   );
-  app.use(
-    '/api/stripe/webhook',
-    bodyParser.raw({ type: 'application/json' }),
-  );
-
   const config = new DocumentBuilder()
     .setTitle('RestFull Api')
     .setDescription('Test EndPoints')
