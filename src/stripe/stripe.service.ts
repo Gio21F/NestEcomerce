@@ -15,6 +15,7 @@ import { CreateOrderDto } from 'src/orders/dto/create-order.dto';
 export class StripeService {
   readonly stripe    : Stripe;
   readonly staticPath: string;
+  readonly nextUrl   : string;
   readonly webhook_id: string;
   constructor(
         readonly configService: ConfigService,
@@ -23,6 +24,7 @@ export class StripeService {
         this.stripe = new Stripe(configService.get<string>('STRIPE_SECRET_KEY'));
         this.staticPath = configService.get<string>('STATIC_URL');
         this.webhook_id = configService.get<string>('STRIPE_WEBHOOK_ID')
+        this.nextUrl = configService.get<string>('NEXT_URL')
     }
 
     async createCheckoutSession( 
@@ -39,7 +41,7 @@ export class StripeService {
             user_id: user_id,
             products: JSON.stringify(create_session.products)
           },
-          return_url: `http://localhost:3000/checkout/return?session_id={CHECKOUT_SESSION_ID}`,
+          return_url: `${this.nextUrl}/checkout/return?session_id={CHECKOUT_SESSION_ID}`,
         });
       } catch (error) {
         Logger.error('[stripeService] Error creating a payment intent');
