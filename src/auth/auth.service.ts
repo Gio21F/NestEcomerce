@@ -66,6 +66,7 @@ export class AuthService {
   }
 
   async checkAuthStatus( user: User ){
+    user.avatar = `${this.staticPath}/users/${user.avatar}`
     return {
       ...user,
       token: this.getJwtToken({ id: user.id })
