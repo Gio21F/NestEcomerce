@@ -29,5 +29,3 @@ services:
       DB_NAME: ${DB_NAME}
     depends_on:
       - db
-    volumes:
-      - .:/app  # Monta tu proyecto en el contenedor
