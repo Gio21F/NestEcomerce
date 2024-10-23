@@ -46,10 +46,4 @@ import bodyParser from 'body-parser';
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {
-  configure(consumer: MiddlewareConsumer) {
-    consumer
-      .apply(bodyParser.raw({ type: 'application/json' })) // Raw body para webhook de Stripe
-      .forRoutes({ path: '/api/stripe/webhook', method: RequestMethod.POST });
-  }
-}
+export class AppModule {}

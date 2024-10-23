@@ -87,7 +87,8 @@ export class StripeService {
     try {
       const sig =  request.headers['stripe-signature'];
       let event: Stripe.Event
-      event = this.stripe.webhooks.constructEvent(request.body as any, sig, this.webhook_id);
+      console.log('Raw body:', request.body.toString());
+      event = this.stripe.webhooks.constructEvent(request.body.toString() as any, sig, this.webhook_id);
       switch (event.type) {
         case 'checkout.session.completed':
           const session = event.data.object as Stripe.Checkout.Session;

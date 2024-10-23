@@ -14,6 +14,10 @@ async function bootstrap() {
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
   });
+  app.use(
+    '/api/stripe/webhook',
+    bodyParser.raw({ type: 'application/json' }),
+  );
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
