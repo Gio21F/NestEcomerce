@@ -113,7 +113,7 @@ export class StripeService {
       }
       return { received: true }
     } catch (error) {
-      Logger.error('[stripeService] Error al verificar signature webhook');
+      Logger.error('[stripeService] Error al verificar signature webhook', error);
       throw new BadRequestException(error); 
     }
   }
